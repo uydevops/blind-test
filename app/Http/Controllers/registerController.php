@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class RegisterController extends Controller
 {
@@ -15,32 +16,44 @@ class RegisterController extends Controller
 
     public function register(Request $request)
     {
-        $email = $request->input('email');
-        $password = $request->input('password');
+        $request->validate([
+            'email' => 'required|email|unique:users',
+            'password' => 'required|min:6',
+        ]);
 
-        $this->createUser($email, $password);
-        $this->createDatabase($email);
-        $this->createTables($email);
+        $user = $this->createUser($request->input('email'), $request->input('password'));
+
+        DB::transaction(function () use ($user) {
+            $this->createDatabaseAndTables($user);
+        });
+
     }
 
     private function createUser($email, $password)
     {
-        $hashedPassword = Hash::make($password);
-        $userData = ['email' => $email, 'password' => $hashedPassword];
-        DB::table('users')->insert($userData);
+        return User::create([
+            'email' => $email,
+            'password' => Hash::make($password),
+        ]);
     }
 
-    private function createDatabase($email)
+    private function createDatabaseAndTables(User $user)
     {
-        $sanitizedEmail = $this->sanitizeEmail($email);
-        $databaseCreateQuery = "CREATE DATABASE db_" . $sanitizedEmail;
+        $databaseName = $this->getDatabaseName($user);
+
+        $this->createDatabase($databaseName);
+        $this->createUserTable($databaseName);
+    }
+
+    private function createDatabase($databaseName)
+    {
+        $databaseCreateQuery = "CREATE DATABASE IF NOT EXISTS $databaseName";
         DB::statement($databaseCreateQuery);
     }
 
-    private function createTables($email)
+    private function createUserTable($databaseName)
     {
-        $sanitizedEmail = $this->sanitizeEmail($email);
-        $tableCreateQuery = "CREATE TABLE db_" . $sanitizedEmail . ".`users` (
+        $tableCreateQuery = "CREATE TABLE IF NOT EXISTS $databaseName.users (
             `id` int(11) NOT NULL AUTO_INCREMENT,
             `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
             `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -49,8 +62,13 @@ class RegisterController extends Controller
             `updated_at` timestamp NULL DEFAULT NULL,
             PRIMARY KEY (`id`),
             UNIQUE KEY `users_email_unique` (`email`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
         DB::statement($tableCreateQuery);
+    }
+
+    private function getDatabaseName(User $user)
+    {
+        return 'db_' . $this->sanitizeEmail($user->email);
     }
 
     private function sanitizeEmail($email)
