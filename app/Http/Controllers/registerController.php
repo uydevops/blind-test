@@ -6,41 +6,55 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
-
-class registerController extends Controller
+class RegisterController extends Controller
 {
-
-
-
-
     public function index()
     {
         return view('welcome');
     }
 
-    public function Register(Request $req)
+    public function register(Request $request)
     {
-        $email = $req->input('email');
-        $password = $req->input('password');
+        $email = $request->input('email');
+        $password = $request->input('password');
 
-        if ($this->EmailExists($email)) {
-            return response()->json(['durum' => 'error', 'mesaj' => 'Bu email adresi zaten kayıtlı']);
-        } else {
-            $data = array('email' => $email, 'password' => Hash::make($password));
-            DB::table('users')->insert($data);
-            return response()->json(['status' => 'success', 'mesaj' => 'Kayıt başarılı']);
-        }
+        $this->createUser($email, $password);
+        $this->createDatabase($email);
+        $this->createTables($email);
     }
 
-
-
-    private function EmailExists($email)
+    private function createUser($email, $password)
     {
-        $data = DB::table('users')->where('email', $email)->get();
-        if (count($data) > 0) {
-            return true;
-        } else {
-            return false;
-        }
+        $hashedPassword = Hash::make($password);
+        $userData = ['email' => $email, 'password' => $hashedPassword];
+        DB::table('users')->insert($userData);
+    }
+
+    private function createDatabase($email)
+    {
+        $sanitizedEmail = $this->sanitizeEmail($email);
+        $databaseCreateQuery = "CREATE DATABASE db_" . $sanitizedEmail;
+        DB::statement($databaseCreateQuery);
+    }
+
+    private function createTables($email)
+    {
+        $sanitizedEmail = $this->sanitizeEmail($email);
+        $tableCreateQuery = "CREATE TABLE db_" . $sanitizedEmail . ".`users` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+            `email` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+            `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+            `created_at` timestamp NULL DEFAULT NULL,
+            `updated_at` timestamp NULL DEFAULT NULL,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `users_email_unique` (`email`)
+          ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+        DB::statement($tableCreateQuery);
+    }
+
+    private function sanitizeEmail($email)
+    {
+        return str_replace(['@', '.'], ['_', '_'], $email);
     }
 }
