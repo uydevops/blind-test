@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class RegisterController extends Controller
 {
@@ -23,10 +24,13 @@ class RegisterController extends Controller
 
         $user = $this->createUser($request->input('email'), $request->input('password'));
 
-        DB::transaction(function () use ($user) {
-            $this->createDatabaseAndTables($user);
-        });
+        $this->createDatabaseAndTables($user);
 
+        // Oturum açtırma işlemi
+        Auth::login($user);
+
+        // Başarıyla kayıt olduktan sonra dashboard sayfasına yönlendir
+        return redirect()->route('dashboard');
     }
 
     private function createUser($email, $password)
@@ -68,11 +72,8 @@ class RegisterController extends Controller
 
     private function getDatabaseName(User $user)
     {
-        return 'db_' . $this->sanitizeEmail($user->email);
+        return 'db_' . $user->id;
     }
 
-    private function sanitizeEmail($email)
-    {
-        return str_replace(['@', '.'], ['_', '_'], $email);
-    }
+   
 }
