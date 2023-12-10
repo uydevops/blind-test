@@ -1,12 +1,10 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 
 class UserHomeController extends Controller
 {
@@ -14,14 +12,19 @@ class UserHomeController extends Controller
     {
         $user = Auth::user();
 
-        $user_email = $user->id;
+        if (!$user) {
+            // Handle the case when the user is not authenticated.
+            return redirect()->route('login'); // You can change the route to your login route.
+        }
+
+        $user_id = $user->id;
 
         config([
             'database.connections.dynamic' => [
                 'driver' => 'mysql',
                 'host' => env('DB_HOST', '127.0.0.1'),
                 'port' => env('DB_PORT', '3306'),
-                'database' => 'db_' . $user_email, 
+                'database' => 'db_' . $user_id,
                 'username' => env('DB_USERNAME', 'root'),
                 'password' => env('DB_PASSWORD', ''),
                 'charset' => 'utf8mb4',
@@ -32,9 +35,11 @@ class UserHomeController extends Controller
             ],
         ]);
 
-        $userDatabaseConnection = DB::connection('dynamic'); // Dinamik yazmasamda olur np :D
+        $userDatabaseConnection = DB::connection('dynamic');
+        $userTable = $userDatabaseConnection->table('users')->get();
 
+        dd($userTable);
 
-        dd($userDatabaseConnection->getDatabaseName());
+        return view('dashboard', compact('userTable'));
     }
 }

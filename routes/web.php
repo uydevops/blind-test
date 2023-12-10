@@ -19,4 +19,4 @@ Route::get('/', [RegisterController::class, 'index'])->name('index');
 
 Route::post('/register', [RegisterController::class, 'register'])->name('register');
 
-Route::get('/dashboard', [UserHomeController::class, 'dashboard'])->name('dashboard');
+Route::get('/dashboard/{user}', [UserHomeController::class, 'dashboard'])->name('dashboard');

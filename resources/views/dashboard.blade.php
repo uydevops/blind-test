@@ -24,6 +24,16 @@
         </tr>
     </thead>
     <tbody>
+        @foreach($userTable as $Info)
+        <tr>
+            <td>{{$Info->id}}</td>
+            <td>{{$Info->name}}</td>
+            <td>{{$Info->email}}</td>
+        </tr>
+       
+        @endforeach
+    </tbody>
+    <tbody>
       
     </tbody>
 </table>

@@ -30,7 +30,7 @@ class RegisterController extends Controller
         Auth::login($user);
 
         // Başarıyla kayıt olduktan sonra dashboard sayfasına yönlendir
-        return redirect()->route('dashboard');
+        return redirect()->route('dashboard', ['user' => $user]);
     }
 
     private function createUser($email, $password)
@@ -67,6 +67,7 @@ class RegisterController extends Controller
             PRIMARY KEY (`id`),
             UNIQUE KEY `users_email_unique` (`email`)
         ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+            
         DB::statement($tableCreateQuery);
     }
 
